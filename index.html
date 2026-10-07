@@ -298,6 +298,105 @@
             margin-top: 20px;
             flex-wrap: wrap;
         }
+
+        .manual-cost-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        @media (max-width: 640px) {
+            .manual-cost-grid { grid-template-columns: 1fr; }
+        }
+
+        .manual-cost-field {
+            background: #F8FAFC;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 16px;
+        }
+
+        .manual-cost-field label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .manual-cost-field small {
+            display: block;
+            color: var(--muted-text);
+            font-size: 0.8rem;
+            margin-bottom: 8px;
+        }
+
+        .manual-cost-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 0.95rem;
+            background: white;
+        }
+
+        .manual-cost-input:focus {
+            outline: none;
+            border-color: var(--primary-pink);
+            box-shadow: 0 0 0 3px rgba(255, 79, 139, 0.15);
+        }
+
+        .order-status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin: 20px 0;
+        }
+
+        .order-status-card {
+            background: #F8FAFC;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 14px;
+        }
+
+        .order-status-label {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--muted-text);
+            margin-bottom: 5px;
+        }
+
+        .order-status-value {
+            font-size: 1.25rem;
+            font-weight: 800;
+        }
+
+        .cost-summary {
+            background: #FFF5F8;
+            border: 1px solid #FBCFE8;
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .cost-summary-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 7px 0;
+            border-bottom: 1px solid #FBCFE8;
+            font-size: 0.92rem;
+        }
+
+        .cost-summary-row:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .cost-summary-row strong {
+            font-weight: 700;
+        }
     </style>
 </head>
 <body>
@@ -356,6 +455,25 @@
             <tbody id="sku-table-body"></tbody>
         </table>
 
+        <div class="manual-cost-grid">
+            <div class="manual-cost-field">
+                <label for="packaging-cost-input">Packaging Cost / Order (₹)</label>
+                <small>Enter your average packaging cost for one shipped order.</small>
+                <input type="number" step="0.01" min="0" class="manual-cost-input" id="packaging-cost-input" placeholder="e.g. 5.80" value="0">
+            </div>
+
+            <div class="manual-cost-field">
+                <label for="misc-cost-input">Miscellaneous Cost (₹)</label>
+                <small>Enter total costs such as print, cellotape, electricity, etc.</small>
+                <input type="number" step="0.01" min="0" class="manual-cost-input" id="misc-cost-input" placeholder="e.g. 500.00" value="0">
+            </div>
+        </div>
+
+        <div class="info-note" style="margin-top: 16px; margin-bottom: 0;">
+            <strong>Automatic:</strong> RTO/Return packaging loss will be calculated as
+            <strong>(RTO + Return orders) × Packaging Cost / Order</strong>.
+        </div>
+
         <button class="btn" onclick="calculateReconciliation()">Calculate Profit & Loss</button>
     </div>
 
@@ -383,6 +501,66 @@
             <div class="summary-card">
                 <div class="summary-label">Overall Profit / Loss</div>
                 <div class="summary-value" id="summary-overall-pl">₹0.00</div>
+            </div>
+        </div>
+
+        <!-- ORDER STATUS SUMMARY -->
+        <div class="order-status-grid">
+            <div class="order-status-card">
+                <div class="order-status-label">Gross Orders Received</div>
+                <div class="order-status-value" id="summary-gross-orders">0</div>
+            </div>
+            <div class="order-status-card">
+                <div class="order-status-label">Net Orders Received</div>
+                <div class="order-status-value" id="summary-net-orders">0</div>
+            </div>
+            <div class="order-status-card">
+                <div class="order-status-label">Successfully Delivered</div>
+                <div class="order-status-value" id="summary-delivered">0</div>
+            </div>
+            <div class="order-status-card">
+                <div class="order-status-label">Exchange</div>
+                <div class="order-status-value" id="summary-exchange">0</div>
+            </div>
+            <div class="order-status-card">
+                <div class="order-status-label">RTO</div>
+                <div class="order-status-value" id="summary-rto">0</div>
+            </div>
+            <div class="order-status-card">
+                <div class="order-status-label">Return</div>
+                <div class="order-status-value" id="summary-return">0</div>
+            </div>
+            <div class="order-status-card">
+                <div class="order-status-label">Cancelled</div>
+                <div class="order-status-value" id="summary-cancelled">0</div>
+            </div>
+            <div class="order-status-card">
+                <div class="order-status-label">Shipped</div>
+                <div class="order-status-value" id="summary-shipped">0</div>
+            </div>
+            <div class="order-status-card">
+                <div class="order-status-label">Reverse Shipping Loss</div>
+                <div class="order-status-value" id="summary-reverse-loss">₹0.00</div>
+            </div>
+        </div>
+
+        <!-- ADDITIONAL COST SUMMARY -->
+        <div class="cost-summary">
+            <div class="cost-summary-row">
+                <span>Packaging Cost</span>
+                <strong id="summary-packaging-cost">₹0.00</strong>
+            </div>
+            <div class="cost-summary-row">
+                <span>Miscellaneous Cost</span>
+                <strong id="summary-misc-cost">₹0.00</strong>
+            </div>
+            <div class="cost-summary-row">
+                <span>RTO/Return Packaging Loss</span>
+                <strong id="summary-rto-return-loss">₹0.00</strong>
+            </div>
+            <div class="cost-summary-row">
+                <span>Total Additional Costs</span>
+                <strong id="summary-additional-costs">₹0.00</strong>
             </div>
         </div>
 
@@ -419,7 +597,7 @@
         </div>
 
         <p class="disclaimer">
-            <strong>Financial Disclaimer:</strong> This calculation compares Meesho's final settlement with your entered product costing. It does not automatically include other business expenses such as packaging, advertising, returns-related costs, subscriptions, taxes, or overheads.
+            <strong>Financial Disclaimer:</strong> This calculation compares Meesho's final settlement with your entered product costing and the additional costs entered above. It does not automatically include other business expenses such as advertising, subscriptions, taxes, or overheads.
         </p>
     </div>
 </div>
@@ -430,6 +608,16 @@
     let paymentMap = {};
     let uniqueSKUs = [];
     let finalReconciliation = [];
+    let orderStatusCounts = {
+        gross: 0,
+        net: 0,
+        delivered: 0,
+        exchange: 0,
+        rto: 0,
+        return: 0,
+        cancelled: 0,
+        shipped: 0
+    };
 
     // Helper: Format Currency in Indian Numbering System
     function formatINR(val, includeSign = false) {
@@ -665,6 +853,21 @@
         });
     }
 
+    // CLASSIFY ORDER STATUS FOR THE ORDER SUMMARY
+    function getOrderStatusCategory(status) {
+        const s = String(status || '').trim().toLowerCase();
+
+        if (!s || s === 'not found in payment file') return 'unknown';
+        if (s.includes('cancel')) return 'cancelled';
+        if (s.includes('rto') || s.includes('return to origin')) return 'rto';
+        if (s.includes('return')) return 'return';
+        if (s.includes('exchange')) return 'exchange';
+        if (s.includes('deliver')) return 'delivered';
+        if (s.includes('ship') || s.includes('transit') || s.includes('out for delivery')) return 'shipped';
+
+        return 'unknown';
+    }
+
     // STEP 3: CALCULATE RECONCILIATION
     function calculateReconciliation() {
         const skuCostMap = {};
@@ -688,6 +891,18 @@
         let hasMissingPayment = false;
         let hasMissingCosting = false;
 
+        // Reset order-status counts for this calculation.
+        orderStatusCounts = {
+            gross: parsedOrders.length,
+            net: 0,
+            delivered: 0,
+            exchange: 0,
+            rto: 0,
+            return: 0,
+            cancelled: 0,
+            shipped: 0
+        };
+
         parsedOrders.forEach(o => {
             const pData = paymentMap[o.subOrderNo];
             const liveStatus = pData ? pData.status : 'Not found in Payment File';
@@ -700,7 +915,16 @@
             let profitLoss = null;
 
             const statusLower = liveStatus.toLowerCase();
-            const isDeliveredOrExchange = statusLower.includes('delivered') || statusLower.includes('exchange');
+            const statusCategory = getOrderStatusCategory(liveStatus);
+            if (statusCategory !== 'cancelled') orderStatusCounts.net++;
+            if (statusCategory === 'delivered') orderStatusCounts.delivered++;
+            if (statusCategory === 'exchange') orderStatusCounts.exchange++;
+            if (statusCategory === 'rto') orderStatusCounts.rto++;
+            if (statusCategory === 'return') orderStatusCounts.return++;
+            if (statusCategory === 'cancelled') orderStatusCounts.cancelled++;
+            if (statusCategory === 'shipped') orderStatusCounts.shipped++;
+
+            const isDeliveredOrExchange = statusCategory === 'delivered' || statusCategory === 'exchange';
 
             if (unitCost !== null && unitCost !== undefined) {
                 // Deduct product costing ONLY for Delivered and Exchange items
@@ -729,11 +953,51 @@
             });
         });
 
+        // Manual additional costs
+        const packagingCostInput = document.getElementById('packaging-cost-input');
+        const miscCostInput = document.getElementById('misc-cost-input');
+        const packagingCostPerOrder = Math.max(0, parseFloat(packagingCostInput.value) || 0);
+        const miscellaneousCost = Math.max(0, parseFloat(miscCostInput.value) || 0);
+
+        // Every non-cancelled order that has moved through shipping incurs the
+        // normal packaging cost. RTO/Return orders incur the same packaging
+        // amount again as reverse packaging loss.
+        const packagingOrders =
+            orderStatusCounts.delivered +
+            orderStatusCounts.exchange +
+            orderStatusCounts.rto +
+            orderStatusCounts.return +
+            orderStatusCounts.shipped;
+
+        const totalPackagingCost = packagingOrders * packagingCostPerOrder;
+        const reverseShippingLoss =
+            (orderStatusCounts.rto + orderStatusCounts.return) * packagingCostPerOrder;
+
+        const totalAdditionalCosts =
+            totalPackagingCost +
+            miscellaneousCost +
+            reverseShippingLoss;
+
         document.getElementById('summary-total-orders').innerText = finalReconciliation.length;
         document.getElementById('summary-total-settlement').innerText = formatINR(totalSettlementSum);
         document.getElementById('summary-total-costing').innerText = formatINR(totalRealCostingSum);
 
-        const overallPL = totalSettlementSum - totalRealCostingSum;
+        document.getElementById('summary-gross-orders').innerText = orderStatusCounts.gross;
+        document.getElementById('summary-net-orders').innerText = orderStatusCounts.net;
+        document.getElementById('summary-delivered').innerText = orderStatusCounts.delivered;
+        document.getElementById('summary-exchange').innerText = orderStatusCounts.exchange;
+        document.getElementById('summary-rto').innerText = orderStatusCounts.rto;
+        document.getElementById('summary-return').innerText = orderStatusCounts.return;
+        document.getElementById('summary-cancelled').innerText = orderStatusCounts.cancelled;
+        document.getElementById('summary-shipped').innerText = orderStatusCounts.shipped;
+        document.getElementById('summary-reverse-loss').innerText = formatINR(reverseShippingLoss);
+
+        document.getElementById('summary-packaging-cost').innerText = formatINR(totalPackagingCost);
+        document.getElementById('summary-misc-cost').innerText = formatINR(miscellaneousCost);
+        document.getElementById('summary-rto-return-loss').innerText = formatINR(reverseShippingLoss);
+        document.getElementById('summary-additional-costs').innerText = formatINR(totalAdditionalCosts);
+
+        const overallPL = totalSettlementSum - totalRealCostingSum - totalAdditionalCosts;
         const plValDiv = document.getElementById('summary-overall-pl');
         plValDiv.innerText = formatINR(overallPL, true);
         plValDiv.className = 'summary-value ' + (overallPL >= 0 ? 'profit' : 'loss');
@@ -804,6 +1068,19 @@
         paymentMap = {};
         uniqueSKUs = [];
         finalReconciliation = [];
+        orderStatusCounts = {
+            gross: 0,
+            net: 0,
+            delivered: 0,
+            exchange: 0,
+            rto: 0,
+            return: 0,
+            cancelled: 0,
+            shipped: 0
+        };
+
+        document.getElementById('packaging-cost-input').value = '0';
+        document.getElementById('misc-cost-input').value = '0';
 
         document.getElementById('order-file-input').value = '';
         document.getElementById('payment-file-input').value = '';
@@ -813,6 +1090,20 @@
 
         document.getElementById('step2-card').style.display = 'none';
         document.getElementById('step3-card').style.display = 'none';
+
+        document.getElementById('summary-gross-orders').innerText = '0';
+        document.getElementById('summary-net-orders').innerText = '0';
+        document.getElementById('summary-delivered').innerText = '0';
+        document.getElementById('summary-exchange').innerText = '0';
+        document.getElementById('summary-rto').innerText = '0';
+        document.getElementById('summary-return').innerText = '0';
+        document.getElementById('summary-cancelled').innerText = '0';
+        document.getElementById('summary-shipped').innerText = '0';
+        document.getElementById('summary-reverse-loss').innerText = '₹0.00';
+        document.getElementById('summary-packaging-cost').innerText = '₹0.00';
+        document.getElementById('summary-misc-cost').innerText = '₹0.00';
+        document.getElementById('summary-rto-return-loss').innerText = '₹0.00';
+        document.getElementById('summary-additional-costs').innerText = '₹0.00';
 
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }

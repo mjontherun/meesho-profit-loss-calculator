@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meesho Profit & Loss Calculator</title>
+    <!-- CDN Libraries for CSV & XLSX parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary-pink: #FF4F8B;
+            --primary-pink-hover: #E03E75;
+            --dark-text: #222222;
+            --muted-text: #666666;
+            --light-bg: #F7F7F7;
+            --card-bg: #FFFFFF;
+            --border-color: #E2E8F0;
+            --profit-green: #16A34A;
+            --profit-bg: #F0FDF4;
+            --loss-red: #DC2626;
+            --loss-bg: #FEF2F2;
+            --warning-orange: #D97706;
+            --warning-bg: #FFFBEB;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--light-bg);
+            color: var(--dark-text);
+            line-height: 1.5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        header h1 {
+            color: var(--dark-text);
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 6px;
+        }
+
+        header p.subtitle {
+            color: var(--muted-text);
+            font-size: 1.05rem;
+            margin-bottom: 12px;
+        }
+
+        .privacy-note {
+            display: inline-block;
+            background: #EDF2F7;
+            color: #4A5568;
+            font-size: 0.85rem;
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: 1px solid #CBD5E0;
+        }
+
+        .step-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .step-number {
+            background: var(--primary-pink);
+            color: white;
+            font-weight: bold;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+        }
+
+        .step-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .upload-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        @media (max-width: 640px) {
+            .upload-grid { grid-template-columns: 1fr; }
+        }
+
+        .drop-box {
+            border: 2px dashed var(--border-color);
+            border-radius: 10px;
+            padding: 24px 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: #FAFAFA;
+        }
+
+        .drop-box:hover {
+            border-color: var(--primary-pink);
+            background: #FFF5F8;
+        }
+
+        .drop-box h4 {
+            color: var(--dark-text);
+            font-size: 1.05rem;
+            margin-bottom: 6px;
+        }
+
+        .drop-box p {
+            color: var(--muted-text);
+            font-size: 0.88rem;
+        }
+
+        .file-status {
+            margin-top: 10px;
+            font-weight: 600;
+            font-size: 0.88rem;
+            color: var(--profit-green);
+        }
+
+        .error-msg {
+            background: var(--loss-bg);
+            color: var(--loss-red);
+            border: 1px solid #FCA5A5;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .sku-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+            margin-bottom: 20px;
+        }
+
+        .sku-table th, .sku-table td {
+            padding: 10px 14px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .sku-table th {
+            background: #F8FAFC;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--muted-text);
+        }
+
+        .sku-input {
+            width: 140px;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 0.95rem;
+        }
+
+        .sku-input:focus {
+            outline: none;
+            border-color: var(--primary-pink);
+            box-shadow: 0 0 0 3px rgba(255, 79, 139, 0.15);
+        }
+
+        .btn {
+            display: inline-block;
+            background: var(--primary-pink);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: 700;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn:hover { background: var(--primary-pink-hover); }
+
+        .btn-secondary {
+            background: #E2E8F0;
+            color: var(--dark-text);
+        }
+
+        .btn-secondary:hover { background: #CBD5E1; }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .summary-card {
+            background: #F8FAFC;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 16px;
+        }
+
+        .summary-label {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--muted-text);
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+
+        .summary-value {
+            font-size: 1.4rem;
+            font-weight: 800;
+        }
+
+        .summary-value.profit { color: var(--profit-green); }
+        .summary-value.loss { color: var(--loss-red); }
+
+        .table-wrapper {
+            overflow-x: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .recon-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+
+        .recon-table th, .recon-table td {
+            padding: 12px 14px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .recon-table th {
+            background: #F1F5F9;
+            font-weight: 700;
+            color: #334155;
+        }
+
+        .badge-profit { color: var(--profit-green); font-weight: 700; }
+        .badge-loss { color: var(--loss-red); font-weight: 700; }
+        .badge-missing { color: var(--warning-orange); font-weight: 600; }
+
+        .info-note {
+            background: var(--warning-bg);
+            border-left: 4px solid var(--warning-orange);
+            color: #92400E;
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-size: 0.88rem;
+            margin-bottom: 16px;
+        }
+
+        .disclaimer {
+            font-size: 0.82rem;
+            color: var(--muted-text);
+            margin-top: 20px;
+            line-height: 1.4;
+        }
+
+        .action-bar {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .manual-cost-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        @media (max-width: 640px) {
+            .manual-cost-grid { grid-template-columns: 1fr; }
+        }
+
+        .manual-cost-field {
+            background: #F8FAFC;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 16px;
+        }
+
+        .manual-cost-field label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .manual-cost-field small {
+            display: block;
+            color: var(--muted-text);
+            font-size: 0.8rem;
+            margin-bottom: 8px;
+        }
+
+        .manual-cost-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 0.95rem;
+            background: white;
+        }
+
+        .manual-cost-input:focus {
+            outline: none;
+            border-color: var(--primary-pink);
+            box-shadow: 0 0 0 3px rgba(255, 79, 139, 0.15);
+        }
+
+        .order-status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin: 20px 0;
+        }
+
+        .order-status-card {
+            background: #F8FAFC;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 14px;
+        }
+
+        .order-status-label {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--muted-text);
+            margin-bottom: 5px;
+        }
+
+        .order-status-value {
+            font-size: 1.25rem;
+            font-weight: 800;
+        }
+
+        .cost-summary {
+            background: #FFF5F8;
+            border: 1px solid #FBCFE8;
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .cost-summary-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 7px 0;
+            border-bottom: 1px solid #FBCFE8;
+            font-size: 0.92rem;
+        }
+
+        .cost-summary-row:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .cost-summary-row strong {
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Meesho Profit & Loss Calculator</h1>
+        <p class="subtitle">Upload your Meesho files, enter your product costing, and see your real order-wise profit or loss.</p>
+        <div class="privacy-note">🔒 Your files are processed in your browser and are not uploaded to a server.</div>
+    </header>
+
+    <!-- STEP 1: UPLOAD FILES -->
+    <div class="step-card" id="step1-card">
+        <div class="step-header">
+            <div class="step-number">1</div>
+            <div class="step-title">Upload Your Meesho Files</div>
+        </div>
+
+        <div class="upload-grid">
+            <div class="drop-box" onclick="document.getElementById('order-file-input').click()">
+                <h4>Order File</h4>
+                <p>Upload your Meesho Order CSV</p>
+                <div class="file-status" id="order-file-status"></div>
+                <input type="file" id="order-file-input" accept=".csv" style="display: none;" onchange="handleOrderFileSelect()">
+            </div>
+
+            <div class="drop-box" onclick="document.getElementById('payment-file-input').click()">
+                <h4>Payment File</h4>
+                <p>Upload your Meesho Payment XLSX or CSV</p>
+                <div class="file-status" id="payment-file-status"></div>
+                <input type="file" id="payment-file-input" accept=".xlsx,.xls,.csv" style="display: none;" onchange="handlePaymentFileSelect()">
+            </div>
+        </div>
+
+        <div class="error-msg" id="upload-error"></div>
+    </div>
+
+    <!-- STEP 2: ENTER SKU COSTING -->
+    <div class="step-card" id="step2-card" style="display: none;">
+        <div class="step-header">
+            <div class="step-number">2</div>
+            <div class="step-title">Enter Your SKU Costing</div>
+        </div>
+
+        <p style="color: var(--muted-text); font-size: 0.92rem; margin-bottom: 12px;">
+            Enter the cost of producing or purchasing <strong>one unit</strong> of each SKU.
+        </p>
+
+        <table class="sku-table">
+            <thead>
+                <tr>
+                    <th>SKU Name</th>
+                    <th>Costing per Unit (₹)</th>
+                </tr>
+            </thead>
+            <tbody id="sku-table-body"></tbody>
+        </table>
+
+        <div class="manual-cost-grid">
+            <div class="manual-cost-field">
+                <label for="packaging-cost-input">Packaging Cost / Order (₹)</label>
+                <small>Enter your average packaging cost for one shipped order.</small>
+                <input type="number" step="0.01" min="0" class="manual-cost-input" id="packaging-cost-input" placeholder="e.g. 5.80" value="0">
+            </div>
+
+            <div class="manual-cost-field">
+                <label for="misc-cost-input">Miscellaneous Cost (₹)</label>
+                <small>Enter total costs such as print, cellotape, electricity, etc.</small>
+                <input type="number" step="0.01" min="0" class="manual-cost-input" id="misc-cost-input" placeholder="e.g. 500.00" value="0">
+            </div>
+        </div>
+
+        <div class="info-note" style="margin-top: 16px; margin-bottom: 0;">
+            <strong>Automatic:</strong> RTO/Return packaging loss will be calculated as
+            <strong>(RTO + Return orders) × Packaging Cost / Order</strong>.
+        </div>
+
+        <button class="btn" onclick="calculateReconciliation()">Calculate Profit & Loss</button>
+    </div>
+
+    <!-- STEP 3: RECONCILIATION RESULTS -->
+    <div class="step-card" id="step3-card" style="display: none;">
+        <div class="step-header">
+            <div class="step-number">3</div>
+            <div class="step-title">Your Reconciliation</div>
+        </div>
+
+        <!-- SUMMARY CARDS -->
+        <div class="summary-grid">
+            <div class="summary-card">
+                <div class="summary-label">Total Orders</div>
+                <div class="summary-value" id="summary-total-orders">0</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Total Final Settlement</div>
+                <div class="summary-value" id="summary-total-settlement">₹0.00</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Total Real Costing</div>
+                <div class="summary-value" id="summary-total-costing">₹0.00</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Overall Profit / Loss</div>
+                <div class="summary-value" id="summary-overall-pl">₹0.00</div>
+            </div>
+        </div>
+
+        <!-- ORDER STATUS SUMMARY -->
+        <div class="order-status-grid">
+            <div class="order-status-card">
+                <div class="order-status-label">Gross Orders Received</div>
+                <div class="order-status-value" id="summary-gross-orders">0</div>
+            </div>
+            <div class="order-status-card">
+                <div class="order-status-label">Net Orders Received</div>
+                <div class="order-status-value" id="summary-net-orders">0</div>
+            </div>
+            <div class="order-status-card">
+                <div class="order-status-label">Successfully Delivered</div>
+                <div class="order-status-value" id="summary-delivered">0</div>
+            </div>
+            <div class="order-status-card">
+                <div class="order-status-label">Exchange</div>
+                <div class="order-status-value" id="summary-exchange">0</div>
+            </div>
+            <div class="order-status-card">
+                <div class="order-status-label">RTO</div>
+                <div class="order-status-value" id="summary-rto">0</div>
+            </div>
+            <div class="order-status-card">
+                <div class="order-status-label">Return</div>
+                <div class="order-status-value" id="summary-return">0</div>
+            </div>
+            <div class="order-status-card">
+                <div class="order-status-label">Cancelled</div>
+                <div class="order-status-value" id="summary-cancelled">0</div>
+            </div>
+            <div class="order-status-card">
+                <div class="order-status-label">Shipped</div>
+                <div class="order-status-value" id="summary-shipped">0</div>
+            </div>
+            <div class="order-status-card">
+                <div class="order-status-label">Reverse Shipping Loss</div>
+                <div class="order-status-value" id="summary-reverse-loss">₹0.00</div>
+            </div>
+        </div>
+
+        <!-- ADDITIONAL COST SUMMARY -->
+        <div class="cost-summary">
+            <div class="cost-summary-row">
+                <span>Packaging Cost</span>
+                <strong id="summary-packaging-cost">₹0.00</strong>
+            </div>
+            <div class="cost-summary-row">
+                <span>Miscellaneous Cost</span>
+                <strong id="summary-misc-cost">₹0.00</strong>
+            </div>
+            <div class="cost-summary-row">
+                <span>RTO/Return Packaging Loss</span>
+                <strong id="summary-rto-return-loss">₹0.00</strong>
+            </div>
+            <div class="cost-summary-row">
+                <span>Total Additional Costs</span>
+                <strong id="summary-additional-costs">₹0.00</strong>
+            </div>
+        </div>
+
+        <div id="missing-payment-note" class="info-note" style="display: none;">
+            ⚠️ <strong>Note:</strong> Some orders were not found in the payment file yet. Their settlement is shown as ₹0.00 and their profit/loss cannot be considered final until payment information is available.
+        </div>
+
+        <div id="missing-costing-note" class="info-note" style="display: none;">
+            ⚠️ <strong>Note:</strong> Some SKUs do not have costing entered. Their Profit/Loss is marked as "—" to avoid incorrect calculations.
+        </div>
+
+        <!-- RECONCILIATION TABLE -->
+        <div class="table-wrapper">
+            <table class="recon-table">
+                <thead>
+                    <tr>
+                        <th>Sub Order No</th>
+                        <th>SKU</th>
+                        <th>Quantity</th>
+                        <th>Live Order Status</th>
+                        <th>Final Settlement Amount</th>
+                        <th>Costing</th>
+                        <th>Real Costing</th>
+                        <th>Profit / Loss</th>
+                    </tr>
+                </thead>
+                <tbody id="recon-tbody"></tbody>
+            </table>
+        </div>
+
+        <div class="action-bar">
+            <button class="btn" onclick="downloadCSV()">Download Reconciliation</button>
+            <button class="btn btn-secondary" onclick="resetTool()">Start Again</button>
+        </div>
+
+        <p class="disclaimer">
+            <strong>Financial Disclaimer:</strong> This calculation compares Meesho's final settlement with your entered product costing and the additional costs entered above. It does not automatically include other business expenses such as advertising, subscriptions, taxes, or overheads.
+        </p>
+    </div>
+</div>
+
+<script>
+    // State Variables
+    let parsedOrders = [];
+    let paymentMap = {};
+    let uniqueSKUs = [];
+    let finalReconciliation = [];
+    let orderStatusCounts = {
+        gross: 0,
+        net: 0,
+        delivered: 0,
+        exchange: 0,
+        rto: 0,
+        return: 0,
+        cancelled: 0,
+        shipped: 0
+    };
+
+    // Helper: Format Currency in Indian Numbering System
+    function formatINR(val, includeSign = false) {
+        if (val === null || val === undefined || isNaN(val)) return '—';
+        const isNegative = val < 0;
+        const absVal = Math.abs(val).toFixed(2);
+
+        const parts = absVal.split('.');
+        let intPart = parts[0];
+        const decPart = parts[1];
+
+        if (intPart.length > 3) {
+            const last3 = intPart.substring(intPart.length - 3);
+            const otherDigits = intPart.substring(0, intPart.length - 3);
+            const formattedOthers = otherDigits.replace(/\B(?=(\d{2})+(?!\d))/g, ",");
+            intPart = formattedOthers + "," + last3;
+        }
+
+        let prefix = '';
+        if (isNegative) prefix = '-₹';
+        else if (includeSign && val > 0) prefix = '+₹';
+        else prefix = '₹';
+
+        return prefix + intPart + '.' + decPart;
+    }
+
+    // STEP 1: FILE SELECTION HANDLERS
+    function handleOrderFileSelect() {
+        const fileInput = document.getElementById('order-file-input');
+        const statusDiv = document.getElementById('order-file-status');
+        const errorDiv = document.getElementById('upload-error');
+        errorDiv.style.display = 'none';
+
+        if (!fileInput.files || fileInput.files.length === 0) return;
+        const file = fileInput.files[0];
+
+        Papa.parse(file, {
+            header: false,
+            skipEmptyLines: true,
+            complete: function(results) {
+                try {
+                    const rows = results.data;
+                    if (!rows || rows.length === 0) {
+                        showUploadError("The Order file is empty.");
+                        return;
+                    }
+
+                    // Flexible Header Search in First 15 Rows
+                    let headerRowIndex = -1;
+                    let subOrderCol = -1;
+                    let skuCol = -1;
+                    let qtyCol = -1;
+
+                    for (let i = 0; i < Math.min(rows.length, 15); i++) {
+                        const rowStr = rows[i].map(c => String(c).trim().toLowerCase());
+                        const subIdx = rowStr.findIndex(c => c.includes('sub order') || c.includes('suborder') || c.includes('order no'));
+                        const skuIdx = rowStr.findIndex(c => c === 'sku' || c.includes('supplier sku') || c.includes('product sku'));
+                        const qtyIdx = rowStr.findIndex(c => c.includes('quantity') || c === 'qty');
+
+                        if (subIdx !== -1 && skuIdx !== -1) {
+                            headerRowIndex = i;
+                            subOrderCol = subIdx;
+                            skuCol = skuIdx;
+                            qtyCol = qtyIdx;
+                            break;
+                        }
+                    }
+
+                    if (headerRowIndex === -1) {
+                        showUploadError("The Order file is missing required columns: 'Sub Order No' and 'SKU'. Please upload the official Order CSV downloaded from Meesho.");
+                        return;
+                    }
+
+                    parsedOrders = [];
+                    for (let i = headerRowIndex + 1; i < rows.length; i++) {
+                        const row = rows[i];
+                        if (!row || row.length <= subOrderCol) continue;
+
+                        const subOrderNo = String(row[subOrderCol]).trim();
+                        if (!subOrderNo) continue;
+
+                        const sku = row[skuCol] ? String(row[skuCol]).trim() : 'General SKU';
+                        const rawQty = qtyCol !== -1 && row[qtyCol] ? parseInt(row[qtyCol]) : 1;
+                        const qty = isNaN(rawQty) || rawQty < 1 ? 1 : rawQty;
+
+                        parsedOrders.push({ subOrderNo, sku, qty });
+                    }
+
+                    if (parsedOrders.length === 0) {
+                        showUploadError("No valid order records found in the Order CSV.");
+                        return;
+                    }
+
+                    statusDiv.innerText = `✓ ${parsedOrders.length} order records loaded`;
+                    checkBothFilesLoaded();
+
+                } catch (err) {
+                    showUploadError("Error parsing Order CSV: " + err.message);
+                }
+            },
+            error: function(err) {
+                showUploadError("Error reading Order CSV file.");
+            }
+        });
+    }
+
+    function handlePaymentFileSelect() {
+        const fileInput = document.getElementById('payment-file-input');
+        const statusDiv = document.getElementById('payment-file-status');
+        const errorDiv = document.getElementById('upload-error');
+        errorDiv.style.display = 'none';
+
+        if (!fileInput.files || fileInput.files.length === 0) return;
+        const file = fileInput.files[0];
+        const fileName = file.name.toLowerCase();
+
+        if (fileName.endsWith('.csv')) {
+            Papa.parse(file, {
+                header: false,
+                skipEmptyLines: true,
+                complete: function(results) { processPaymentRows(results.data, statusDiv); }
+            });
+        } else {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+                    processPaymentRows(rows, statusDiv);
+                } catch (err) {
+                    showUploadError("Error parsing Payment Excel file.");
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+    }
+
+    // Robust Header Detection for Payment File
+    function processPaymentRows(rows, statusDiv) {
+        if (!rows || rows.length === 0) {
+            showUploadError("The Payment file is empty.");
+            return;
+        }
+
+        let headerRowIndex = -1;
+        let subOrderCol = -1, settlementCol = -1, statusCol = -1;
+
+        for (let i = 0; i < Math.min(rows.length, 15); i++) {
+            const rowStr = rows[i].map(c => String(c).trim().toLowerCase());
+            const subOrderIdx = rowStr.findIndex(c => c.includes('sub order') || c.includes('suborder') || c.includes('order no'));
+            const settlementIdx = rowStr.findIndex(c => c.includes('final settlement') || c.includes('settlement amount') || c.includes('payout'));
+            const statusIdx = rowStr.findIndex(c => c.includes('live order status') || c.includes('order status') || c === 'status');
+
+            if (subOrderIdx !== -1 && (settlementIdx !== -1 || statusIdx !== -1)) {
+                headerRowIndex = i;
+                subOrderCol = subOrderIdx;
+                settlementCol = settlementIdx;
+                statusCol = statusIdx;
+                break;
+            }
+        }
+
+        if (headerRowIndex === -1) {
+            showUploadError("This doesn't appear to be the correct Meesho Payment file. Missing required columns: 'Sub Order No' and 'Final Settlement Amount'.");
+            return;
+        }
+
+        paymentMap = {};
+        let countLoaded = 0;
+
+        for (let i = headerRowIndex + 1; i < rows.length; i++) {
+            const row = rows[i];
+            if (!row || row.length === 0) continue;
+
+            const subOrderNo = row[subOrderCol] ? String(row[subOrderCol]).trim() : '';
+            if (!subOrderNo || subOrderNo.toLowerCase().includes('total') || subOrderNo.includes('(') || !/^\d/.test(subOrderNo)) continue;
+
+            const rawSettlement = settlementCol !== -1 ? row[settlementCol] : 0;
+            const settlementVal = parseFloat(String(rawSettlement).replace(/[^0-9.-]+/g, ""));
+            const settlement = isNaN(settlementVal) ? 0 : settlementVal;
+            const status = statusCol !== -1 && row[statusCol] ? String(row[statusCol]).trim() : 'Delivered';
+
+            paymentMap[subOrderNo] = { settlement, status };
+            countLoaded++;
+        }
+
+        statusDiv.innerText = `✓ ${countLoaded} payment records loaded`;
+        checkBothFilesLoaded();
+    }
+
+    function showUploadError(msg) {
+        const errorDiv = document.getElementById('upload-error');
+        errorDiv.innerText = msg;
+        errorDiv.style.display = 'block';
+    }
+
+    function checkBothFilesLoaded() {
+        if (parsedOrders.length > 0 && Object.keys(paymentMap).length > 0) {
+            extractUniqueSKUsAndRenderStep2();
+        }
+    }
+
+    // STEP 2: RENDER SKU COSTING LIST
+    function extractUniqueSKUsAndRenderStep2() {
+        const skuSet = new Set();
+        parsedOrders.forEach(o => skuSet.add(o.sku));
+        uniqueSKUs = Array.from(skuSet).sort();
+
+        const tbody = document.getElementById('sku-table-body');
+        tbody.innerHTML = '';
+
+        uniqueSKUs.forEach((sku, idx) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${escapeHtml(sku)}</strong></td>
+                <td>
+                    <input type="number" step="0.01" min="0" class="sku-input" id="sku-cost-${idx}" placeholder="e.g. 160.00">
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        document.getElementById('step2-card').style.display = 'block';
+        document.getElementById('step2-card').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function escapeHtml(text) {
+        return text.replace(/[&<>"']/g, function(m) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
+        });
+    }
+
+    // CLASSIFY ORDER STATUS FOR THE ORDER SUMMARY
+    function getOrderStatusCategory(status) {
+        const s = String(status || '').trim().toLowerCase();
+
+        if (!s || s === 'not found in payment file') return 'unknown';
+        if (s.includes('cancel')) return 'cancelled';
+        if (s.includes('rto') || s.includes('return to origin')) return 'rto';
+        if (s.includes('return')) return 'return';
+        if (s.includes('exchange')) return 'exchange';
+        if (s.includes('deliver')) return 'delivered';
+        if (s.includes('ship') || s.includes('transit') || s.includes('out for delivery')) return 'shipped';
+
+        return 'unknown';
+    }
+
+    // STEP 3: CALCULATE RECONCILIATION
+    function calculateReconciliation() {
+        const skuCostMap = {};
+        let missingCostingCount = 0;
+
+        uniqueSKUs.forEach((sku, idx) => {
+            const input = document.getElementById(`sku-cost-${idx}`);
+            const val = input.value.trim();
+            if (val === '') {
+                skuCostMap[sku] = null;
+                missingCostingCount++;
+            } else {
+                const parsedVal = parseFloat(val);
+                skuCostMap[sku] = isNaN(parsedVal) ? null : parsedVal;
+            }
+        });
+
+        finalReconciliation = [];
+        let totalSettlementSum = 0;
+        let totalRealCostingSum = 0;
+        let hasMissingPayment = false;
+        let hasMissingCosting = false;
+
+        // Reset order-status counts for this calculation.
+        orderStatusCounts = {
+            gross: parsedOrders.length,
+            net: 0,
+            delivered: 0,
+            exchange: 0,
+            rto: 0,
+            return: 0,
+            cancelled: 0,
+            shipped: 0
+        };
+
+        parsedOrders.forEach(o => {
+            const pData = paymentMap[o.subOrderNo];
+            const liveStatus = pData ? pData.status : 'Not found in Payment File';
+            const settlementAmount = pData ? pData.settlement : 0.0;
+
+            if (!pData) hasMissingPayment = true;
+
+            const unitCost = skuCostMap[o.sku];
+            let realCosting = null;
+            let profitLoss = null;
+
+            const statusLower = liveStatus.toLowerCase();
+            const statusCategory = getOrderStatusCategory(liveStatus);
+            if (statusCategory !== 'cancelled') orderStatusCounts.net++;
+            if (statusCategory === 'delivered') orderStatusCounts.delivered++;
+            if (statusCategory === 'exchange') orderStatusCounts.exchange++;
+            if (statusCategory === 'rto') orderStatusCounts.rto++;
+            if (statusCategory === 'return') orderStatusCounts.return++;
+            if (statusCategory === 'cancelled') orderStatusCounts.cancelled++;
+            if (statusCategory === 'shipped') orderStatusCounts.shipped++;
+
+            const isDeliveredOrExchange = statusCategory === 'delivered' || statusCategory === 'exchange';
+
+            if (unitCost !== null && unitCost !== undefined) {
+                // Deduct product costing ONLY for Delivered and Exchange items
+                if (isDeliveredOrExchange) {
+                    realCosting = unitCost * o.qty;
+                } else {
+                    realCosting = 0.0; // RTO, Return, Not found in Payment File
+                }
+                profitLoss = settlementAmount - realCosting;
+                totalRealCostingSum += realCosting;
+            } else {
+                hasMissingCosting = true;
+            }
+
+            totalSettlementSum += settlementAmount;
+
+            finalReconciliation.push({
+                subOrderNo: o.subOrderNo,
+                sku: o.sku,
+                qty: o.qty,
+                liveStatus: liveStatus,
+                settlementAmount: settlementAmount,
+                unitCost: unitCost,
+                realCosting: realCosting,
+                profitLoss: profitLoss
+            });
+        });
+
+        // Manual additional costs
+        const packagingCostInput = document.getElementById('packaging-cost-input');
+        const miscCostInput = document.getElementById('misc-cost-input');
+        const packagingCostPerOrder = Math.max(0, parseFloat(packagingCostInput.value) || 0);
+        const miscellaneousCost = Math.max(0, parseFloat(miscCostInput.value) || 0);
+
+        // Every non-cancelled order that has moved through shipping incurs the
+        // normal packaging cost. RTO/Return orders incur the same packaging
+        // amount again as reverse packaging loss.
+        const packagingOrders =
+            orderStatusCounts.delivered +
+            orderStatusCounts.exchange +
+            orderStatusCounts.rto +
+            orderStatusCounts.return +
+            orderStatusCounts.shipped;
+
+        const totalPackagingCost = packagingOrders * packagingCostPerOrder;
+        const reverseShippingLoss =
+            (orderStatusCounts.rto + orderStatusCounts.return) * packagingCostPerOrder;
+
+        const totalAdditionalCosts =
+            totalPackagingCost +
+            miscellaneousCost +
+            reverseShippingLoss;
+
+        document.getElementById('summary-total-orders').innerText = finalReconciliation.length;
+        document.getElementById('summary-total-settlement').innerText = formatINR(totalSettlementSum);
+        document.getElementById('summary-total-costing').innerText = formatINR(totalRealCostingSum);
+
+        document.getElementById('summary-gross-orders').innerText = orderStatusCounts.gross;
+        document.getElementById('summary-net-orders').innerText = orderStatusCounts.net;
+        document.getElementById('summary-delivered').innerText = orderStatusCounts.delivered;
+        document.getElementById('summary-exchange').innerText = orderStatusCounts.exchange;
+        document.getElementById('summary-rto').innerText = orderStatusCounts.rto;
+        document.getElementById('summary-return').innerText = orderStatusCounts.return;
+        document.getElementById('summary-cancelled').innerText = orderStatusCounts.cancelled;
+        document.getElementById('summary-shipped').innerText = orderStatusCounts.shipped;
+        document.getElementById('summary-reverse-loss').innerText = formatINR(reverseShippingLoss);
+
+        document.getElementById('summary-packaging-cost').innerText = formatINR(totalPackagingCost);
+        document.getElementById('summary-misc-cost').innerText = formatINR(miscellaneousCost);
+        document.getElementById('summary-rto-return-loss').innerText = formatINR(reverseShippingLoss);
+        document.getElementById('summary-additional-costs').innerText = formatINR(totalAdditionalCosts);
+
+        const overallPL = totalSettlementSum - totalRealCostingSum - totalAdditionalCosts;
+        const plValDiv = document.getElementById('summary-overall-pl');
+        plValDiv.innerText = formatINR(overallPL, true);
+        plValDiv.className = 'summary-value ' + (overallPL >= 0 ? 'profit' : 'loss');
+
+        document.getElementById('missing-payment-note').style.display = hasMissingPayment ? 'block' : 'none';
+        document.getElementById('missing-costing-note').style.display = hasMissingCosting ? 'block' : 'none';
+
+        const tbody = document.getElementById('recon-tbody');
+        tbody.innerHTML = '';
+
+        finalReconciliation.forEach(r => {
+            const tr = document.createElement('tr');
+            const settlementStr = formatINR(r.settlementAmount);
+            const costingStr = r.unitCost !== null ? formatINR(r.unitCost) : '<span class="badge-missing">Costing not entered</span>';
+            const realCostingStr = r.realCosting !== null ? formatINR(r.realCosting) : '—';
+
+            let plStr = '—';
+            let plClass = '';
+            if (r.profitLoss !== null) {
+                plStr = formatINR(r.profitLoss, true);
+                plClass = r.profitLoss >= 0 ? 'badge-profit' : 'badge-loss';
+            }
+
+            tr.innerHTML = `
+                <td>${escapeHtml(r.subOrderNo)}</td>
+                <td><strong>${escapeHtml(r.sku)}</strong></td>
+                <td>${r.qty}</td>
+                <td>${escapeHtml(r.liveStatus)}</td>
+                <td>${settlementStr}</td>
+                <td>${costingStr}</td>
+                <td>${realCostingStr}</td>
+                <td class="${plClass}">${plStr}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        document.getElementById('step3-card').style.display = 'block';
+        document.getElementById('step3-card').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // DOWNLOAD CSV
+    function downloadCSV() {
+        if (!finalReconciliation || finalReconciliation.length === 0) return;
+
+        let csvContent = "Sub Order No,SKU,Quantity,Live Order Status,Final Settlement Amount,Costing,Real Costing,Profit / Loss\n";
+
+        finalReconciliation.forEach(r => {
+            const settlement = r.settlementAmount.toFixed(2);
+            const costing = r.unitCost !== null ? r.unitCost.toFixed(2) : "Costing not entered";
+            const realCosting = r.realCosting !== null ? r.realCosting.toFixed(2) : "—";
+            const pl = r.profitLoss !== null ? r.profitLoss.toFixed(2) : "—";
+
+            csvContent += `"${r.subOrderNo}","${r.sku}",${r.qty},"${r.liveStatus}",${settlement},"${costing}","${realCosting}","${pl}"\n`;
+        });
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        link.setAttribute("href", URL.createObjectURL(blob));
+        link.setAttribute("download", "Meesho_Profit_Loss_Reconciliation.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    // RESET TOOL
+    function resetTool() {
+        parsedOrders = [];
+        paymentMap = {};
+        uniqueSKUs = [];
+        finalReconciliation = [];
+        orderStatusCounts = {
+            gross: 0,
+            net: 0,
+            delivered: 0,
+            exchange: 0,
+            rto: 0,
+            return: 0,
+            cancelled: 0,
+            shipped: 0
+        };
+
+        document.getElementById('packaging-cost-input').value = '0';
+        document.getElementById('misc-cost-input').value = '0';
+
+        document.getElementById('order-file-input').value = '';
+        document.getElementById('payment-file-input').value = '';
+        document.getElementById('order-file-status').innerText = '';
+        document.getElementById('payment-file-status').innerText = '';
+        document.getElementById('upload-error').style.display = 'none';
+
+        document.getElementById('step2-card').style.display = 'none';
+        document.getElementById('step3-card').style.display = 'none';
+
+        document.getElementById('summary-gross-orders').innerText = '0';
+        document.getElementById('summary-net-orders').innerText = '0';
+        document.getElementById('summary-delivered').innerText = '0';
+        document.getElementById('summary-exchange').innerText = '0';
+        document.getElementById('summary-rto').innerText = '0';
+        document.getElementById('summary-return').innerText = '0';
+        document.getElementById('summary-cancelled').innerText = '0';
+        document.getElementById('summary-shipped').innerText = '0';
+        document.getElementById('summary-reverse-loss').innerText = '₹0.00';
+        document.getElementById('summary-packaging-cost').innerText = '₹0.00';
+        document.getElementById('summary-misc-cost').innerText = '₹0.00';
+        document.getElementById('summary-rto-return-loss').innerText = '₹0.00';
+        document.getElementById('summary-additional-costs').innerText = '₹0.00';
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+</script>
+
+</body>
+</html>
